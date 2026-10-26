@@ -1,145 +1,39 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Autonomous Vehicle AI Detection</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Autonomous Vehicle AI Detection</title>
 
-  <style>
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #101827;
-      color: #f8fafc;
-      text-align: center;
-    }
-
-    header { padding: 22px 12px 12px; }
-
-    h1 {
-      margin: 0 0 8px;
-      font-size: clamp(23px, 5vw, 34px);
-    }
-
-    .subtitle { color: #b8c4d8; font-size: 14px; }
-
-    .panel {
-      width: min(950px, 94%);
-      margin: 18px auto;
-      padding: 16px;
-      background: #1c293c;
-      border-radius: 16px;
-    }
-
-    .controls {
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-bottom: 14px;
-    }
-
-    button, select {
-      padding: 12px 16px;
-      border: 0;
-      border-radius: 9px;
-      font-size: 15px;
-    }
-
-    button {
-      background: #20c997;
-      color: #06251e;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    button.stop {
-      background: #ff647c;
-      color: #310711;
-    }
-
-    button:disabled {
-      opacity: .5;
-      cursor: not-allowed;
-    }
-
-    select { background: white; color: #111827; }
-
-    #status {
-      margin: 12px;
-      color: #ffd166;
-      font-size: 14px;
-      overflow-wrap: anywhere;
-    }
-
-    .video-wrap {
-      position: relative;
-      width: 100%;
-      background: #05080e;
-      border-radius: 12px;
-      overflow: hidden;
-      line-height: 0;
-    }
-
-    video {
-      display: block;
-      width: 100%;
-      height: auto;
-      max-height: 70vh;
-      object-fit: contain;
-    }
-
-    canvas {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-    }
-
-    .stats {
-      display: flex;
-      justify-content: space-around;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-top: 14px;
-    }
-
-    .stat {
-      background: #101827;
-      padding: 12px;
-      border-radius: 10px;
-      flex: 1;
-      min-width: 120px;
-    }
-
-    .stat strong {
-      display: block;
-      font-size: 22px;
-      color: #20c997;
-      margin-top: 5px;
-    }
-
-    #detections {
-      text-align: left;
-      line-height: 1.8;
-      overflow-wrap: anywhere;
-    }
-
-    .note {
-      color: #b8c4d8;
-      font-size: 13px;
-      line-height: 1.6;
-    }
-  </style>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#101827;color:#f8fafc;text-align:center}
+header{padding:22px 12px 12px}
+h1{margin:0 0 8px;font-size:clamp(23px,5vw,34px)}
+.subtitle{color:#b8c4d8;font-size:14px}
+.panel{width:min(950px,94%);margin:18px auto;padding:16px;background:#1c293c;border-radius:16px}
+.controls{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+button,select{padding:12px 16px;border:0;border-radius:9px;font-size:15px}
+button{background:#20c997;color:#06251e;font-weight:bold;cursor:pointer}
+button.stop{background:#ff647c;color:#310711}
+button:disabled{opacity:.5;cursor:not-allowed}
+select{background:#fff;color:#111827}
+#status{margin:12px;color:#ffd166;font-size:14px;overflow-wrap:anywhere}
+.video-wrap{position:relative;width:100%;background:#05080e;border-radius:12px;overflow:hidden;line-height:0}
+video{display:block;width:100%;height:auto;max-height:70vh;object-fit:contain}
+canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.stats{display:flex;justify-content:space-around;gap:10px;flex-wrap:wrap;margin-top:14px}
+.stat{background:#101827;padding:12px;border-radius:10px;flex:1;min-width:120px}
+.stat strong{display:block;font-size:22px;color:#20c997;margin-top:5px}
+#detections{text-align:left;line-height:1.8;overflow-wrap:anywhere}
+.note{color:#b8c4d8;font-size:13px;line-height:1.6}
+</style>
 </head>
 
 <body>
 <header>
   <h1>Autonomous Vehicle AI</h1>
-  <div class="subtitle">Real-time custom YOLO11 tree detection</div>
+  <div class="subtitle">Real-time object detection + custom tree detection</div>
 </header>
 
 <main class="panel">
@@ -148,12 +42,11 @@
       <option value="environment">Rear camera (phone)</option>
       <option value="user">Front camera / webcam</option>
     </select>
-
     <button id="startBtn" disabled>Start Camera</button>
     <button id="stopBtn" class="stop" disabled>Stop Camera</button>
   </div>
 
-  <div id="status">Loading your custom YOLO model...</div>
+  <div id="status">Loading AI models...</div>
 
   <div class="video-wrap">
     <video id="video" autoplay muted playsinline></video>
@@ -161,20 +54,9 @@
   </div>
 
   <div class="stats">
-    <div class="stat">
-      Objects detected
-      <strong id="objectCount">0</strong>
-    </div>
-
-    <div class="stat">
-      Camera
-      <strong id="cameraStatus">OFF</strong>
-    </div>
-
-    <div class="stat">
-      AI model
-      <strong id="modelStatus">Loading</strong>
-    </div>
+    <div class="stat">Objects detected<strong id="objectCount">0</strong></div>
+    <div class="stat">Camera<strong id="cameraStatus">OFF</strong></div>
+    <div class="stat">AI models<strong id="modelStatus">Loading</strong></div>
   </div>
 </main>
 
@@ -184,486 +66,470 @@
 </section>
 
 <section class="panel note">
-  This page uses your custom-trained YOLO11 ONNX model.
-  Detection accuracy depends on your training images and model.
-  This page does not measure object distance or directly control robot motors.
-  Use independent distance sensors and a safe motor-stop mechanism on a physical robot.
+  COCO-SSD detects supported everyday objects. Your custom YOLO model detects trees.
+  Rocks require a custom model trained with rock images. This page does not measure
+  distance or directly control robot motors.
 </section>
 
-<!-- ONNX Runtime Web -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js"></script>
 
 <script>
 (() => {
-  "use strict";
+"use strict";
 
-  // IMPORTANT:
-  // Keep best.onnx in the same folder as this index.html.
-  const MODEL_URL = "./best.onnx";
+const TREE_MODEL_URL = "./best.onnx";
+const INPUT_SIZE = 640;
+const TREE_CONFIDENCE = 0.45;
+const IOU_THRESHOLD = 0.45;
 
-  // Your exported model uses 640 x 640 input.
-  const INPUT_SIZE = 640;
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const startBtn = document.getElementById("startBtn");
+const stopBtn = document.getElementById("stopBtn");
+const cameraSelect = document.getElementById("cameraSelect");
+const status = document.getElementById("status");
+const objectCount = document.getElementById("objectCount");
+const cameraStatus = document.getElementById("cameraStatus");
+const modelStatus = document.getElementById("modelStatus");
+const detections = document.getElementById("detections");
 
-  // Reduce this to detect more objects, or increase it to reduce false detections.
-  const CONFIDENCE_THRESHOLD = 0.25;
-  const IOU_THRESHOLD = 0.45;
+let cocoModel = null;
+let treeSession = null;
+let stream = null;
+let running = false;
+let busy = false;
+let animationId = null;
+let lastInference = 0;
 
-  // Your model was trained for tree detection.
-  // Change this text if your dataset uses another class name.
-  const CLASS_NAME = "Tree";
+const inputCanvas = document.createElement("canvas");
+inputCanvas.width = INPUT_SIZE;
+inputCanvas.height = INPUT_SIZE;
+const inputCtx = inputCanvas.getContext("2d", {
+  willReadFrequently: true
+});
 
-  const video = document.getElementById("video");
-  const canvas = document.getElementById("canvas");
-  const ctx = canvas.getContext("2d");
+function setStatus(message) {
+  status.textContent = message;
+}
 
-  const startBtn = document.getElementById("startBtn");
-  const stopBtn = document.getElementById("stopBtn");
-  const cameraSelect = document.getElementById("cameraSelect");
+function resizeCanvas() {
+  if (!video.videoWidth || !video.videoHeight) return;
 
-  const status = document.getElementById("status");
-  const objectCount = document.getElementById("objectCount");
-  const cameraStatus = document.getElementById("cameraStatus");
-  const modelStatus = document.getElementById("modelStatus");
-  const detections = document.getElementById("detections");
+  if (canvas.width !== video.videoWidth ||
+      canvas.height !== video.videoHeight) {
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+  }
+}
 
-  let session = null;
-  let stream = null;
-  let running = false;
-  let busy = false;
-  let animationId = null;
-  let lastInference = 0;
+function prepareTreeInput() {
+  const sourceWidth = video.videoWidth;
+  const sourceHeight = video.videoHeight;
 
-  // Scratch canvas used to resize and normalize the camera image.
-  const inputCanvas = document.createElement("canvas");
-  inputCanvas.width = INPUT_SIZE;
-  inputCanvas.height = INPUT_SIZE;
-  const inputCtx = inputCanvas.getContext("2d", {
-    willReadFrequently: true
-  });
+  const scale = Math.min(
+    INPUT_SIZE / sourceWidth,
+    INPUT_SIZE / sourceHeight
+  );
 
-  function setStatus(message) {
-    status.textContent = message;
+  const resizedWidth = Math.round(sourceWidth * scale);
+  const resizedHeight = Math.round(sourceHeight * scale);
+  const padX = (INPUT_SIZE - resizedWidth) / 2;
+  const padY = (INPUT_SIZE - resizedHeight) / 2;
+
+  inputCtx.fillStyle = "rgb(114,114,114)";
+  inputCtx.fillRect(0, 0, INPUT_SIZE, INPUT_SIZE);
+
+  inputCtx.drawImage(
+    video,
+    0, 0, sourceWidth, sourceHeight,
+    padX, padY, resizedWidth, resizedHeight
+  );
+
+  const pixels = inputCtx.getImageData(
+    0, 0, INPUT_SIZE, INPUT_SIZE
+  ).data;
+
+  const plane = INPUT_SIZE * INPUT_SIZE;
+  const input = new Float32Array(3 * plane);
+
+  for (let i = 0; i < plane; i++) {
+    input[i] = pixels[i * 4] / 255;
+    input[plane + i] = pixels[i * 4 + 1] / 255;
+    input[2 * plane + i] = pixels[i * 4 + 2] / 255;
   }
 
-  function resizeDisplayCanvas() {
-    if (!video.videoWidth || !video.videoHeight) return;
+  return {
+    tensor: new ort.Tensor(
+      "float32",
+      input,
+      [1, 3, INPUT_SIZE, INPUT_SIZE]
+    ),
+    scale,
+    padX,
+    padY,
+    sourceWidth,
+    sourceHeight
+  };
+}
 
-    if (
-      canvas.width !== video.videoWidth ||
-      canvas.height !== video.videoHeight
-    ) {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-    }
-  }
+function iou(a, b) {
+  const left = Math.max(a.x, b.x);
+  const top = Math.max(a.y, b.y);
+  const right = Math.min(a.x + a.w, b.x + b.w);
+  const bottom = Math.min(a.y + a.h, b.y + b.h);
 
-  // Prepare the image using YOLO-style letterboxing.
-  // Returns the scale and padding needed to map boxes back to the camera.
-  function prepareInput() {
-    const sourceWidth = video.videoWidth;
-    const sourceHeight = video.videoHeight;
+  const inter = Math.max(0, right - left) *
+                Math.max(0, bottom - top);
 
-    const scale = Math.min(
-      INPUT_SIZE / sourceWidth,
-      INPUT_SIZE / sourceHeight
+  const areaA = a.w * a.h;
+  const areaB = b.w * b.h;
+
+  return inter / (areaA + areaB - inter + 1e-7);
+}
+
+function decodeTreeOutput(output, info) {
+  const data = output.data;
+  const dims = output.dims;
+
+  let count;
+  let channelFirst;
+
+  if (dims.length === 3 && dims[1] === 5) {
+    channelFirst = true;
+    count = dims[2];
+  } else if (dims.length === 3 && dims[2] === 5) {
+    channelFirst = false;
+    count = dims[1];
+  } else {
+    throw new Error(
+      "Unexpected tree model output shape: " +
+      JSON.stringify(dims)
     );
-
-    const resizedWidth = Math.round(sourceWidth * scale);
-    const resizedHeight = Math.round(sourceHeight * scale);
-
-    const padX = (INPUT_SIZE - resizedWidth) / 2;
-    const padY = (INPUT_SIZE - resizedHeight) / 2;
-
-    inputCtx.fillStyle = "rgb(114,114,114)";
-    inputCtx.fillRect(0, 0, INPUT_SIZE, INPUT_SIZE);
-
-    inputCtx.drawImage(
-      video,
-      0,
-      0,
-      sourceWidth,
-      sourceHeight,
-      padX,
-      padY,
-      resizedWidth,
-      resizedHeight
-    );
-
-    const imageData = inputCtx.getImageData(
-      0, 0, INPUT_SIZE, INPUT_SIZE
-    ).data;
-
-    const planeSize = INPUT_SIZE * INPUT_SIZE;
-    const inputData = new Float32Array(3 * planeSize);
-
-    // Convert RGBA pixels to normalized RGB, NCHW format.
-    for (let i = 0; i < planeSize; i++) {
-      inputData[i] = imageData[i * 4] / 255;
-      inputData[planeSize + i] = imageData[i * 4 + 1] / 255;
-      inputData[2 * planeSize + i] = imageData[i * 4 + 2] / 255;
-    }
-
-    return {
-      tensor: new ort.Tensor(
-        "float32",
-        inputData,
-        [1, 3, INPUT_SIZE, INPUT_SIZE]
-      ),
-      scale,
-      padX,
-      padY,
-      sourceWidth,
-      sourceHeight
-    };
   }
 
-  function intersectionOverUnion(a, b) {
-    const left = Math.max(a.x1, b.x1);
-    const top = Math.max(a.y1, b.y1);
-    const right = Math.min(a.x2, b.x2);
-    const bottom = Math.min(a.y2, b.y2);
+  const boxes = [];
 
-    const width = Math.max(0, right - left);
-    const height = Math.max(0, bottom - top);
-    const intersection = width * height;
+  for (let i = 0; i < count; i++) {
+    let cx, cy, w, h, score;
 
-    const areaA = Math.max(0, a.x2 - a.x1) *
-                  Math.max(0, a.y2 - a.y1);
-    const areaB = Math.max(0, b.x2 - b.x1) *
-                  Math.max(0, b.y2 - b.y1);
-
-    return intersection / (areaA + areaB - intersection + 1e-7);
-  }
-
-  function applyNMS(boxes) {
-    boxes.sort((a, b) => b.score - a.score);
-
-    const selected = [];
-
-    while (boxes.length > 0) {
-      const best = boxes.shift();
-      selected.push(best);
-
-      boxes = boxes.filter(
-        box => intersectionOverUnion(best, box) < IOU_THRESHOLD
-      );
-    }
-
-    return selected;
-  }
-
-  // Decode YOLO11 output with shape [1, 5, 8400].
-  // This assumes one trained class: x, y, width, height, class score.
-  function decodeOutput(output, info) {
-    const data = output.data;
-    const dims = output.dims;
-
-    let numPredictions;
-    let channelFirst;
-
-    if (dims.length === 3 && dims[1] === 5) {
-      channelFirst = true;
-      numPredictions = dims[2];
-    } else if (dims.length === 3 && dims[2] === 5) {
-      channelFirst = false;
-      numPredictions = dims[1];
+    if (channelFirst) {
+      cx = data[i];
+      cy = data[count + i];
+      w = data[2 * count + i];
+      h = data[3 * count + i];
+      score = data[4 * count + i];
     } else {
-      throw new Error(
-        "Unexpected model output shape: " + JSON.stringify(dims) +
-        ". This code expects a one-class YOLO model with 5 output values per prediction."
-      );
+      const k = i * 5;
+      cx = data[k];
+      cy = data[k + 1];
+      w = data[k + 2];
+      h = data[k + 3];
+      score = data[k + 4];
     }
 
-    const boxes = [];
-
-    for (let i = 0; i < numPredictions; i++) {
-      let cx, cy, w, h, score;
-
-      if (channelFirst) {
-        cx = data[i];
-        cy = data[numPredictions + i];
-        w = data[2 * numPredictions + i];
-        h = data[3 * numPredictions + i];
-        score = data[4 * numPredictions + i];
-      } else {
-        const offset = i * 5;
-        cx = data[offset];
-        cy = data[offset + 1];
-        w = data[offset + 2];
-        h = data[offset + 3];
-        score = data[offset + 4];
-      }
-
-      if (!Number.isFinite(score) ||
-          score < CONFIDENCE_THRESHOLD) {
-        continue;
-      }
-
-      // YOLO exported boxes are center-x, center-y, width, height.
-      let x1 = (cx - w / 2 - info.padX) / info.scale;
-      let y1 = (cy - h / 2 - info.padY) / info.scale;
-      let x2 = (cx + w / 2 - info.padX) / info.scale;
-      let y2 = (cy + h / 2 - info.padY) / info.scale;
-
-      x1 = Math.max(0, Math.min(info.sourceWidth, x1));
-      y1 = Math.max(0, Math.min(info.sourceHeight, y1));
-      x2 = Math.max(0, Math.min(info.sourceWidth, x2));
-      y2 = Math.max(0, Math.min(info.sourceHeight, y2));
-
-      if (x2 <= x1 || y2 <= y1) continue;
-
-      boxes.push({
-        x1, y1, x2, y2,
-        score,
-        class: CLASS_NAME
-      });
+    if (!Number.isFinite(score) ||
+        score < TREE_CONFIDENCE) {
+      continue;
     }
 
-    return applyNMS(boxes);
-  }
+    let x = (cx - w / 2 - info.padX) / info.scale;
+    let y = (cy - h / 2 - info.padY) / info.scale;
+    let x2 = (cx + w / 2 - info.padX) / info.scale;
+    let y2 = (cy + h / 2 - info.padY) / info.scale;
 
-  function drawBoxes(boxes) {
-    resizeDisplayCanvas();
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    x = Math.max(0, Math.min(info.sourceWidth, x));
+    y = Math.max(0, Math.min(info.sourceHeight, y));
+    x2 = Math.max(0, Math.min(info.sourceWidth, x2));
+    y2 = Math.max(0, Math.min(info.sourceHeight, y2));
 
-    boxes.forEach((box) => {
-      const x = box.x1;
-      const y = box.y1;
-      const width = box.x2 - box.x1;
-      const height = box.y2 - box.y1;
+    if (x2 <= x || y2 <= y) continue;
 
-      const color = "#20c997";
-      const label = box.class + " " +
-        (box.score * 100).toFixed(0) + "%";
-
-      ctx.lineWidth = Math.max(2, canvas.width / 320);
-      ctx.strokeStyle = color;
-      ctx.strokeRect(x, y, width, height);
-
-      ctx.font = "bold 15px Arial";
-
-      const labelWidth = ctx.measureText(label).width + 12;
-      const labelY = Math.max(0, y - 25);
-
-      ctx.fillStyle = color;
-      ctx.fillRect(x, labelY, labelWidth, 24);
-
-      ctx.fillStyle = "#07111d";
-      ctx.fillText(label, x + 6, labelY + 17);
+    boxes.push({
+      x,
+      y,
+      w: x2 - x,
+      h: y2 - y,
+      score,
+      class: "Tree",
+      source: "Custom YOLO"
     });
   }
 
-  function showPredictions(boxes) {
-    objectCount.textContent = String(boxes.length);
+  boxes.sort((a, b) => b.score - a.score);
 
-    if (boxes.length === 0) {
-      detections.textContent =
-        "No trees detected in this frame.";
-      return;
+  const selected = [];
+
+  while (boxes.length) {
+    const best = boxes.shift();
+    selected.push(best);
+
+    for (let i = boxes.length - 1; i >= 0; i--) {
+      if (iou(best, boxes[i]) > IOU_THRESHOLD) {
+        boxes.splice(i, 1);
+      }
     }
-
-    detections.replaceChildren();
-
-    boxes.forEach((box, index) => {
-      const line = document.createElement("div");
-
-      line.textContent =
-        (index + 1) + ". " + box.class +
-        " — " + (box.score * 100).toFixed(1) +
-        "% confidence";
-
-      detections.appendChild(line);
-    });
   }
 
-  async function detectFrame(now) {
+  return selected;
+}
+
+function drawBoxes(items) {
+  resizeCanvas();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  items.forEach(item => {
+    const color = item.source === "Custom YOLO"
+      ? "#20c997"
+      : "#60a5fa";
+
+    const label = item.class + " " +
+      Math.round(item.score * 100) + "%";
+
+    ctx.lineWidth = Math.max(2, canvas.width / 320);
+    ctx.strokeStyle = color;
+    ctx.strokeRect(item.x, item.y, item.w, item.h);
+
+    ctx.font = "bold 15px Arial";
+
+    const labelWidth = ctx.measureText(label).width + 12;
+    const labelY = Math.max(0, item.y - 25);
+
+    ctx.fillStyle = color;
+    ctx.fillRect(item.x, labelY, labelWidth, 24);
+
+    ctx.fillStyle = "#07111d";
+    ctx.fillText(label, item.x + 6, labelY + 17);
+  });
+}
+
+function showPredictions(items) {
+  objectCount.textContent = String(items.length);
+
+  if (!items.length) {
+    detections.textContent = "No objects detected in this frame.";
+    return;
+  }
+
+  detections.replaceChildren();
+
+  items.forEach((item, index) => {
+    const line = document.createElement("div");
+
+    line.textContent =
+      (index + 1) + ". " + item.class + " — " +
+      (item.score * 100).toFixed(1) +
+      "% confidence (" + item.source + ")";
+
+    detections.appendChild(line);
+  });
+}
+
+async function detectFrame(now) {
+  if (!running) return;
+
+  animationId = requestAnimationFrame(detectFrame);
+
+  if (busy || video.readyState < 2 ||
+      now - lastInference < 250) {
+    return;
+  }
+
+  busy = true;
+  lastInference = now;
+
+  try {
+    const [cocoPredictions, treeResults] = await Promise.all([
+      cocoModel.detect(video, 20, 0.45),
+
+      (async () => {
+        const info = prepareTreeInput();
+        const feeds = {};
+
+        feeds[treeSession.inputNames[0]] = info.tensor;
+
+        const results = await treeSession.run(feeds);
+        const output = results[treeSession.outputNames[0]];
+
+        if (!output) {
+          throw new Error("Tree model returned no output tensor.");
+        }
+
+        return decodeTreeOutput(output, info);
+      })()
+    ]);
+
     if (!running) return;
 
+    const everyday = cocoPredictions.map(p => ({
+      x: p.bbox[0],
+      y: p.bbox[1],
+      w: p.bbox[2],
+      h: p.bbox[3],
+      score: p.score,
+      class: p.class,
+      source: "COCO-SSD"
+    }));
+
+    const combined = everyday.concat(treeResults);
+
+    drawBoxes(combined);
+    showPredictions(combined);
+
+    setStatus(
+      "Both models running — " +
+      everyday.length + " general object(s), " +
+      treeResults.length + " tree(s) detected."
+    );
+
+  } catch (error) {
+    console.error("Detection error:", error);
+    setStatus("Detection error: " + error.message);
+  } finally {
+    busy = false;
+  }
+}
+
+async function stopCamera(showMessage = true) {
+  running = false;
+
+  if (animationId !== null) {
+    cancelAnimationFrame(animationId);
+    animationId = null;
+  }
+
+  if (stream) {
+    stream.getTracks().forEach(track => track.stop());
+    stream = null;
+  }
+
+  video.pause();
+  video.srcObject = null;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  cameraStatus.textContent = "OFF";
+  objectCount.textContent = "0";
+  detections.textContent = "No detections yet.";
+
+  startBtn.disabled = !(cocoModel && treeSession);
+  stopBtn.disabled = true;
+  cameraSelect.disabled = false;
+
+  if (showMessage) setStatus("Camera stopped.");
+}
+
+async function startCamera() {
+  if (!cocoModel || !treeSession) {
+    setStatus("Wait until both AI models finish loading.");
+    return;
+  }
+
+  await stopCamera(false);
+
+  try {
+    setStatus("Requesting camera permission...");
+
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: {
+        facingMode: { ideal: cameraSelect.value },
+        width: { ideal: 640 },
+        height: { ideal: 480 }
+      }
+    });
+
+    video.srcObject = stream;
+    await video.play();
+
+    running = true;
+    cameraStatus.textContent = "ON";
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
+    cameraSelect.disabled = true;
+    lastInference = 0;
+
+    setStatus("Camera started. Both detectors are running.");
     animationId = requestAnimationFrame(detectFrame);
 
-    // Run inference approximately 4–5 times per second.
-    if (
-      busy ||
-      video.readyState < 2 ||
-      now - lastInference < 220
-    ) {
-      return;
-    }
-
-    busy = true;
-    lastInference = now;
-
-    try {
-      const info = prepareInput();
-
-      const feeds = {};
-      feeds[session.inputNames[0]] = info.tensor;
-
-      const results = await session.run(feeds);
-
-      if (!running) return;
-
-      const output = results[session.outputNames[0]];
-      if (!output) {
-        throw new Error("The model returned no output tensor.");
-      }
-
-      const boxes = decodeOutput(output, info);
-
-      drawBoxes(boxes);
-      showPredictions(boxes);
-
-      setStatus(
-        boxes.length
-          ? "Detection running — " + boxes.length + " object(s) detected."
-          : "Detection running — no trees detected in this frame."
-      );
-
-    } catch (error) {
-      console.error("Detection error:", error);
-      setStatus("Detection error: " + error.message);
-    } finally {
-      busy = false;
-    }
-  }
-
-  async function startCamera() {
-    if (!session) {
-      setStatus("The custom AI model is not ready.");
-      return;
-    }
-
-    if (!navigator.mediaDevices ||
-        !navigator.mediaDevices.getUserMedia) {
-      setStatus("Camera access requires HTTPS.");
-      return;
-    }
-
+  } catch (error) {
     await stopCamera(false);
 
-    try {
-      setStatus("Requesting camera permission...");
-
-      stream = await navigator.mediaDevices.getUserMedia({
-        audio: false,
-        video: {
-          facingMode: { ideal: cameraSelect.value },
-          width: { ideal: 640 },
-          height: { ideal: 480 }
-        }
-      });
-
-      video.srcObject = stream;
-      await video.play();
-
-      running = true;
-      cameraStatus.textContent = "ON";
-      startBtn.disabled = true;
-      stopBtn.disabled = false;
-      cameraSelect.disabled = true;
-      lastInference = 0;
-
-      setStatus("Camera started. Custom YOLO detection is running.");
-
-      animationId = requestAnimationFrame(detectFrame);
-
-    } catch (error) {
-      console.error("Camera error:", error);
-      await stopCamera(false);
-
-      setStatus(
-        "Could not start camera: " + error.message +
-        ". Allow camera permission and open the HTTPS website."
-      );
-    }
+    setStatus(
+      "Could not start camera: " + error.message +
+      ". Allow camera permission and use the HTTPS website."
+    );
   }
+}
 
-  async function stopCamera(showMessage = true) {
-    running = false;
+startBtn.addEventListener("click", startCamera);
+stopBtn.addEventListener("click", () => stopCamera());
 
-    if (animationId !== null) {
-      cancelAnimationFrame(animationId);
-      animationId = null;
+async function initialize() {
+  try {
+    if (!navigator.mediaDevices ||
+        !navigator.mediaDevices.getUserMedia) {
+      throw new Error("Camera access requires HTTPS or localhost.");
     }
 
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      stream = null;
+    if (!window.tf || !window.cocoSsd) {
+      throw new Error("TensorFlow.js/COCO-SSD library did not load.");
     }
 
-    video.pause();
-    video.srcObject = null;
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    cameraStatus.textContent = "OFF";
-    objectCount.textContent = "0";
-    detections.textContent = "No detections yet.";
-
-    startBtn.disabled = !session;
-    stopBtn.disabled = true;
-    cameraSelect.disabled = false;
-
-    if (showMessage) {
-      setStatus("Camera stopped.");
+    if (!window.ort) {
+      throw new Error("ONNX Runtime failed to load.");
     }
-  }
 
-  startBtn.addEventListener("click", startCamera);
+    setStatus("Loading COCO-SSD model...");
 
-  stopBtn.addEventListener("click", () => {
-    stopCamera();
-  });
+    await tf.ready();
 
-  cameraSelect.addEventListener("change", () => {
-    if (running) startCamera();
-  });
+    cocoModel = await cocoSsd.load({
+      base: "lite_mobilenet_v2"
+    });
 
-  async function initialize() {
-    try {
-      if (!window.ort) {
-        throw new Error("ONNX Runtime failed to load. Check your internet connection.");
+    setStatus("COCO-SSD loaded. Loading custom YOLO tree model...");
+
+    ort.env.wasm.wasmPaths =
+      "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/";
+
+    ort.env.wasm.numThreads = 1;
+
+    treeSession = await ort.InferenceSession.create(
+      TREE_MODEL_URL,
+      {
+        executionProviders: ["wasm"],
+        graphOptimizationLevel: "all"
       }
+    );
 
-      // Load ONNX Runtime WebAssembly files from the CDN.
-      ort.env.wasm.wasmPaths =
-        "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/";
+    console.log("COCO-SSD loaded.");
+    console.log("Tree model inputs:", treeSession.inputNames);
+    console.log("Tree model outputs:", treeSession.outputNames);
 
-      ort.env.wasm.numThreads = 1;
+    modelStatus.textContent = "Both Ready";
+    startBtn.disabled = false;
 
-      setStatus("Loading custom YOLO11 model: best.onnx ...");
+    setStatus(
+      "Both models loaded. Select a camera and press Start Camera."
+    );
 
-      session = await ort.InferenceSession.create(
-        MODEL_URL,
-        {
-          executionProviders: ["wasm"],
-          graphOptimizationLevel: "all"
-        }
-      );
+  } catch (error) {
+    console.error("Model loading error:", error);
 
-      console.log("Model inputs:", session.inputNames);
-      console.log("Model outputs:", session.outputNames);
+    modelStatus.textContent = "Error";
+    startBtn.disabled = true;
 
-      modelStatus.textContent = "Ready";
-      startBtn.disabled = false;
-
-      setStatus(
-        "Custom model loaded. Select a camera and press Start Camera."
-      );
-
-    } catch (error) {
-      console.error("Model loading error:", error);
-      modelStatus.textContent = "Error";
-      startBtn.disabled = true;
-
-      setStatus(
-        "Could not load best.onnx: " + error.message +
-        ". Check that best.onnx is uploaded beside index.html and the filename is correct."
-      );
-    }
+    setStatus(
+      "Could not load both models: " + error.message +
+      ". Check internet access and ensure best.onnx is beside index.html."
+    );
   }
+}
 
-  initialize();
+initialize();
 })();
 </script>
 </body>
