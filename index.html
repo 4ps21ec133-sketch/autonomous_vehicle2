@@ -1,0 +1,405 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Autonomous Vehicle AI Detection</title>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #101827;
+      color: #f8fafc;
+      text-align: center;
+    }
+
+    header { padding: 22px 12px 12px; }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(23px, 5vw, 34px);
+    }
+
+    .subtitle { color: #b8c4d8; font-size: 14px; }
+
+    .panel {
+      width: min(950px, 94%);
+      margin: 18px auto;
+      padding: 16px;
+      background: #1c293c;
+      border-radius: 16px;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    button, select {
+      padding: 12px 16px;
+      border: 0;
+      border-radius: 9px;
+      font-size: 15px;
+    }
+
+    button {
+      background: #20c997;
+      color: #06251e;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button.stop { background: #ff647c; color: #310711; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+
+    select { background: #fff; color: #111827; }
+
+    #status {
+      margin: 12px;
+      color: #ffd166;
+      font-size: 14px;
+      overflow-wrap: anywhere;
+    }
+
+    .video-wrap {
+      position: relative;
+      width: 100%;
+      background: #05080e;
+      border-radius: 12px;
+      overflow: hidden;
+      min-height: 200px;
+    }
+
+    video {
+      display: block;
+      width: 100%;
+      max-height: 70vh;
+      object-fit: contain;
+    }
+
+    canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .stats {
+      display: flex;
+      justify-content: space-around;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+
+    .stat {
+      background: #101827;
+      padding: 12px;
+      border-radius: 10px;
+      flex: 1;
+      min-width: 120px;
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 22px;
+      color: #20c997;
+      margin-top: 5px;
+    }
+
+    #detections {
+      text-align: left;
+      line-height: 1.8;
+      overflow-wrap: anywhere;
+    }
+
+    .note {
+      color: #b8c4d8;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+
+<body>
+<header>
+  <h1>Autonomous Vehicle AI</h1>
+  <div class="subtitle">
+    Real-time camera object detection
+  </div>
+</header>
+
+<main class="panel">
+  <div class="controls">
+    <select id="cameraSelect" aria-label="Choose camera">
+      <option value="environment">Rear camera (phone)</option>
+      <option value="user">Front camera / webcam</option>
+    </select>
+
+    <button id="startBtn" disabled>Start Camera</button>
+    <button id="stopBtn" class="stop" disabled>Stop Camera</button>
+  </div>
+
+  <div id="status">Loading AI model. Please wait...</div>
+
+  <div class="video-wrap">
+    <video id="video" autoplay muted playsinline></video>
+    <canvas id="canvas"></canvas>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      Objects detected
+      <strong id="objectCount">0</strong>
+    </div>
+    <div class="stat">
+      Camera
+      <strong id="cameraStatus">OFF</strong>
+    </div>
+    <div class="stat">
+      AI model
+      <strong id="modelStatus">Loading</strong>
+    </div>
+  </div>
+</main>
+
+<section class="panel">
+  <h2>Detected Objects</h2>
+  <div id="detections">No detections yet.</div>
+</section>
+
+<section class="panel note">
+  This demo uses a general-purpose pretrained model. It may not recognize
+  stones, tree trunks, or every road hazard. It does not measure object
+  distance or control robot motors. Use independent distance sensors and
+  a safe motor-stop mechanism for a physical robot.
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+
+<script>
+(() => {
+  const video = document.getElementById("video");
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext("2d");
+  const startBtn = document.getElementById("startBtn");
+  const stopBtn = document.getElementById("stopBtn");
+  const cameraSelect = document.getElementById("cameraSelect");
+  const status = document.getElementById("status");
+  const objectCount = document.getElementById("objectCount");
+  const cameraStatus = document.getElementById("cameraStatus");
+  const modelStatus = document.getElementById("modelStatus");
+  const detections = document.getElementById("detections");
+
+  let model = null;
+  let stream = null;
+  let running = false;
+  let busy = false;
+  let animationId = null;
+  let lastInference = 0;
+  let lastPredictions = [];
+
+  function setStatus(message) {
+    status.textContent = message;
+  }
+
+  function resizeCanvas() {
+    if (!video.videoWidth || !video.videoHeight) return;
+    if (canvas.width !== video.videoWidth ||
+        canvas.height !== video.videoHeight) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+    }
+  }
+
+  function drawBoxes(predictions) {
+    resizeCanvas();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const colors = [
+      "#20c997", "#ffd166", "#60a5fa",
+      "#ff647c", "#c084fc", "#fb923c"
+    ];
+
+    predictions.forEach((p, index) => {
+      const [x, y, w, h] = p.bbox;
+      const color = colors[index % colors.length];
+      const label = p.class + " " + (p.score * 100).toFixed(0) + "%";
+
+      ctx.lineWidth = Math.max(2, canvas.width / 320);
+      ctx.strokeStyle = color;
+      ctx.strokeRect(x, y, w, h);
+
+      ctx.font = "bold 15px Arial";
+      const labelWidth = ctx.measureText(label).width + 12;
+      const labelY = Math.max(0, y - 25);
+
+      ctx.fillStyle = color;
+      ctx.fillRect(x, labelY, labelWidth, 24);
+
+      ctx.fillStyle = "#07111d";
+      ctx.fillText(label, x + 6, labelY + 17);
+    });
+  }
+
+  function showPredictions(predictions) {
+    lastPredictions = predictions;
+    objectCount.textContent = predictions.length;
+
+    if (!predictions.length) {
+      detections.textContent = "No objects detected in this frame.";
+      return;
+    }
+
+    detections.replaceChildren();
+
+    predictions.forEach((p) => {
+      const line = document.createElement("div");
+      line.textContent =
+        p.class + " — " + (p.score * 100).toFixed(1) + "% confidence";
+      detections.appendChild(line);
+    });
+  }
+
+  async function detectFrame(now) {
+    if (!running) return;
+
+    animationId = requestAnimationFrame(detectFrame);
+
+    if (busy || video.readyState < 2 || now - lastInference < 180) {
+      return;
+    }
+
+    busy = true;
+    lastInference = now;
+
+    try {
+      const predictions = await model.detect(video, 20, 0.45);
+      if (!running) return;
+      drawBoxes(predictions);
+      showPredictions(predictions);
+      setStatus("AI detection running.");
+    } catch (error) {
+      setStatus("Detection error: " + error.message);
+    } finally {
+      busy = false;
+    }
+  }
+
+  async function startCamera() {
+    if (!model) {
+      setStatus("AI model is not ready. Wait and try again.");
+      return;
+    }
+
+    await stopCamera(false);
+
+    try {
+      setStatus("Requesting camera permission...");
+
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: {
+          facingMode: { ideal: cameraSelect.value },
+          width: { ideal: 640 },
+          height: { ideal: 480 }
+        }
+      });
+
+      video.srcObject = stream;
+      await video.play();
+
+      running = true;
+      cameraStatus.textContent = "ON";
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+      cameraSelect.disabled = true;
+      lastInference = 0;
+
+      setStatus("Camera started. Detecting objects...");
+      animationId = requestAnimationFrame(detectFrame);
+    } catch (error) {
+      await stopCamera(false);
+      setStatus(
+        "Could not start camera: " + error.message +
+        ". Check camera permission and open the HTTPS website."
+      );
+    }
+  }
+
+  async function stopCamera(showMessage = true) {
+    running = false;
+
+    if (animationId !== null) {
+      cancelAnimationFrame(animationId);
+      animationId = null;
+    }
+
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      stream = null;
+    }
+
+    video.pause();
+    video.srcObject = null;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    cameraStatus.textContent = "OFF";
+    objectCount.textContent = "0";
+    detections.textContent = "No detections yet.";
+    lastPredictions = [];
+
+    startBtn.disabled = !model;
+    stopBtn.disabled = true;
+    cameraSelect.disabled = false;
+
+    if (showMessage) setStatus("Camera stopped.");
+  }
+
+  startBtn.addEventListener("click", startCamera);
+  stopBtn.addEventListener("click", () => stopCamera());
+
+  cameraSelect.addEventListener("change", () => {
+    if (running) startCamera();
+  });
+
+  async function initialize() {
+    try {
+      if (!navigator.mediaDevices ||
+          !navigator.mediaDevices.getUserMedia) {
+        throw new Error("Camera access requires HTTPS or localhost.");
+      }
+
+      setStatus("Loading TensorFlow.js...");
+      await tf.ready();
+
+      setStatus("Loading object detection model...");
+      model = await cocoSsd.load({ base: "lite_mobilenet_v2" });
+
+      modelStatus.textContent = "Ready";
+      startBtn.disabled = false;
+      setStatus("Model ready. Select a camera and press Start Camera.");
+    } catch (error) {
+      modelStatus.textContent = "Error";
+      startBtn.disabled = true;
+      setStatus(
+        "Could not load AI model: " + error.message +
+        ". Check internet access and refresh the page."
+      );
+    }
+  }
+
+  initialize();
+})();
+</script>
+</body>
+</html>
